@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=test.delegator.StandAlone
+Exec=/home/ubuntu/delegate.c
+User=root
