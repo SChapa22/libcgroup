@@ -6,10 +6,9 @@
 #include <unistd.h>
 #include <systemd/sd-bus.h>
 
-#define SYSTEMD_CGROUP_CONTROLLER "_systemd"
-
 //static const char * CGROUP =
-static const char *SCOPE = "delegated.scope";
+static const char *SCOPE = "testing-delegated.scope";
+static const char *SLICE = "testing-delegated.slice";
 
 int main (int argc, char* argv[]){
 	sd_bus_error error = SD_BUS_ERROR_NULL;
@@ -40,7 +39,10 @@ int main (int argc, char* argv[]){
 	ret = sd_bus_message_append(m, "(sv)", "Delegate", "b", 1);
 	if (ret<0){fprintf(stderr, "3rd sd_bus_message_append failed: %d:%s\n", ret, strerror(-ret)); goto out;}
 
-	ret = sd_bus_message_append(m, "(sv)", "CollectMode", "s", "inactive-or-failed");
+//	ret = sd_bus_message_append(m, "(sv)", "CollectMode", "s", "inactive-or-failed");
+//	if (ret<0){fprintf(stderr, "4th sd_bus_message_append failed: %d:%s\n", ret, strerror(-ret)); goto out;}
+
+	ret = sd_bus_message_append(m, "(sv)", "Slice", "s", SLICE);
 	if (ret<0){fprintf(stderr, "4th sd_bus_message_append failed: %d:%s\n", ret, strerror(-ret)); goto out;}
 
 	ret = sd_bus_message_close_container(m);
@@ -56,15 +58,19 @@ int main (int argc, char* argv[]){
 	if (ret<0){fprintf(stderr, "sd_bus_message_reply failed: %d:%s\n", ret, strerror(-ret)); goto out;}
 
 	fprintf(stdout, "%s  --  %d\n", object, getpid());
-/*
-	ret = cg_pid_get_path(SYSTEMD_CGROUP_CONTROLLER, 0, &cgroup);
-	if (ret<0){fprintf(stderr, "cg_pid_get_path failed: %d:%s\n", ret, strerror(-ret)); goto out;}
 
-	ret = cg_get_xattr_bool(SYSTEMD_CGROUP_CONTROLLER, cgroup, "trusted.delegate");
-	if (ret==0){fprintf(stderr, "Group is delegated, but to someone else.\n"); goto out;}
-	if (ret<0){fprintf(stderr, "cg_get_xattr_bool failed: %d:%s\n", ret, strerror(-ret)); goto out;}
-*/
-	fprintf(stdout, "Sucess!\n");
+	// Use system call to check if the scope has been delegated--name must match scope/slice defined at start of program
+	FILE *fp;
+	char result[1035];
+	fp = popen("sudo getfattr -n trusted.delegate /sys/fs/cgroup/unified/testing.slice/testing-delegated.slice/testing-delegated.scope", "r");
+	if (fp == NULL){fprintf(stderr, "Failed to run popen\n"); goto out;}
+	while(fgets(result, sizeof(result), fp) != NULL){
+//		fprintf(stdout, "%s, %d\n", result, strcmp(result, "trusted.delegate=\"1\""));
+		if (strcmp(result, "trusted.delegate=\"1\"\n")==0){fprintf(stdout, "Successfully Delegated Scope!\n");}
+	}
+	pclose(fp);
+
+//	fprintf(stdout, "Sucess!\n");
 	fflush(stdout);
 	sleep (100000);
 
