@@ -22,29 +22,26 @@ void permanent_sleep(){
 	}
 }
 
-//@todo Improve error messages for create_scope_and_slice & create_scope_user_slice; look at cg_delegate.py
+/*
+ * @todo Improve error messages for create_scope_and_slice & create_scope_user_slice; look at cg_delegate.py
+ */
 
 int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delegated, enum SYSD_UNIT_MODE mode){
 
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *m = NULL, *reply = NULL;
-	char *object = NULL;
 	sd_bus *bus = NULL;
 	int ret = 0;
 	
 	int child_pid = fork();
 
 	if (child_pid < 0){
-		//No child process created
 		fprintf(stderr, "fork() failed: %d:%s\n", child_pid, strerror(-child_pid));
 	}
 	else if (child_pid == 0){
-	//This is the child process, sleep forever
 		permanent_sleep();
 	}
-	else{
-		//This is the parent process, move child process to the desired slice/scope
-		
+	else{		
 		ret = sd_bus_open_system(&bus);
 		if (ret<0){
 			fprintf(stderr, "sd_bus_open_system failed: %d:%s\n", ret, strerror(-ret));
@@ -108,18 +105,10 @@ int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delega
 			fprintf(stderr, "sd_bus_call failed: %d:%s\n", ret, strerror(-ret));
 			goto out;
 		}
-
-		ret = sd_bus_message_read(reply, "o", &object);
-		if (ret<0){
-			fprintf(stderr, "sd_bus_message_reply failed: %d:%s\n", ret, strerror(-ret));
-			goto out;
-		}
 		
-		// Parent thread will return PID of child thread
 		ret = child_pid;
 	}
 
-	//@todo Does object need to be freed?
 out:
 	if(m != NULL){
 		sd_bus_message_unref(m);
@@ -134,24 +123,27 @@ out:
 	return ret;
 }
 
+
+int cgroup_create_scope_user_slice(char *scope_name, int delegated, enum SYSD_UNIT_MODE mode){
+	return cgroup_create_scope_and_slice(scope_name, CG_SYSTEMD_USER_SLICE_NAME, delegated, mode);
+}
+/*
 int cgroup_create_scope_user_slice(char *scope_name, int delegated, enum SYSD_UNIT_MODE mode){
 
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *m = NULL, *reply = NULL;
-	char *object = NULL;
 	sd_bus *bus = NULL;
 	int ret = 0;
 	
 	int child_pid = fork();
 
-	if(child_pid < 0){ //No child process created
+	if(child_pid < 0){
 		fprintf(stderr, "fork() failed: %d:%s\n", child_pid, strerror(-child_pid));
 	}
-	else if (child_pid == 0){ //This is the child process, sleep forever
+	else if (child_pid == 0){
 		permanent_sleep();
 	}
-	else{ //This is the parent process, move child process to the desired slice/scope
-
+	else{
 		ret = sd_bus_open_system(&bus);
 		if (ret<0){
 			fprintf(stderr, "sd_bus_open_system failed: %d:%s\n", ret, strerror(-ret));
@@ -216,11 +208,9 @@ int cgroup_create_scope_user_slice(char *scope_name, int delegated, enum SYSD_UN
 			goto out;
 		}
 		
-		// Parent thread will return PID of child thread
 		ret = child_pid;
 	}
 	
-	//@todo Does object need to be freed?
 out:
 	if(m != NULL){
 		sd_bus_message_unref(m);
@@ -234,6 +224,7 @@ out:
 
 	return ret;
 }
+*/
 
 int cgroup_is_delegated(char *scope_name){
 
