@@ -1,6 +1,0 @@
-[Unit]
-Description=Delegation Service
-[Service]
-Type=dbus
-BusName=test.delegator.StandAlone
-ExecStart=/home/ubuntu/delegate.c
