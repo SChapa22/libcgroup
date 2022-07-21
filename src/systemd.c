@@ -13,9 +13,6 @@
 #define CG_SYSTEMD_USER_SLICE_NAME "user.slice"
 #define CG_SCOPE_TREE_ROOT "/sys/fs/cgroup/unified/"
 
-enum SYSD_UNIT_MODE {SYSD_UNIT_MODE_FAIL, SYSD_UNIT_MODE_REPLACE, SYSD_UNIT_MODE_ISOLATE,
-					SYSD_UNIT_MODE_IGN_DEPS, SYSD_UNIT_MODE_IGN_REQS};
-
 char SYSD_UNIT_MODE_NAMES[5][20] = {"fail", "replace", "isolate","ignore-dependencies", "ignore-requirements"};
 
 void permanent_sleep(){
@@ -323,7 +320,7 @@ int cgroup_is_delegated(char *scope_name){
 
 	return ret;
 }
-
+/*
 int main (int argc, char* argv[]){
 	
 	char file_path[FILENAME_MAX], file_root[FILENAME_MAX];
@@ -353,3 +350,4 @@ int main (int argc, char* argv[]){
 	sleep(100); // Allow time to check manually
 
 }
+*/
