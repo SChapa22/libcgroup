@@ -32,6 +32,9 @@ libcgroup_la_CFLAGS += -DSYSTEMD
 endif
 libcgroup_la_LDFLAGS = -Wl,--version-script,$(srcdir)/libcgroup.map \
 		       -version-number $(VERSION_NUMBER)
+if WITH_SYSTEMD
+libcgroup_la_LDFLAGS += -lsystemd
+endif
 
 noinst_LTLIBRARIES = libcgroupfortesting.la
 libcgroupfortesting_la_SOURCES = parse.h parse.y lex.l api.c config.c libcgroup-internal.h \

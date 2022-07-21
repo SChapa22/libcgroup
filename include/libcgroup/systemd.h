@@ -10,20 +10,43 @@
 extern "C" {
 #endif
 
-#ifdef SYSTEMD
+enum cgroup_sysd_unit_mode {
+	SYSD_UNIT_MODE_FAIL = 0,
+	SYSD_UNIT_MODE_REPLACE = 1,
+	SYSD_UNIT_MODE_ISOLATE = 2,
+	SYSD_UNIT_MODE_IGN_DEPS = 3,
+	SYSD_UNIT_MODE_IGN_REQS = 4,
+};
 
 /**
- * Create a systemd scope
+ * Create a systemd scope in the specified slice
  *
  * @param scope_name Name of the scope, must end in .scope
  * @param slice_name Name of the slice, must end in .slice
  * @param delegated Instruct systemd that this cgroup is delegated and should not be managed
  * 	  by systemd
+ * @param mode Unit mode for systemd, must be from SYSD_UNIT_MODE Enum
  */
-int cgroup_create_scope(const char * const scope_name, const char * const slice_name,
-			int delegated);
+int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delegated,
+	enum cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid);
 
-#endif /* SYSTEMD */
+/**
+ * Create a systemd scope in the user slice
+ *
+ * @param scope_name Name of the scope, must end in .scope
+ * @param delegated Instruct systemd that this cgroup is delegated and should not be managed
+ *	  by systemd
+ * @param mode Unit mode for systemd, must be from SYSD_UNIT_MODE Enum
+ */
+int cgroup_create_scope_user_slice(char *scope_name, int delegated,
+	enum cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid);
+
+/**
+ * Check if a systemd scope has been delegated
+ *
+ * @param scope_name Name of scope to be checked, must end in .scope
+ */
+int cgroup_is_delegated(char *scope_name);
 
 #ifdef __cplusplus
 } /* extern "C" */
