@@ -24,8 +24,13 @@
 extern "C" {
 #endif
 
-typedef enum SYSD_UNIT_MODE {SYSD_UNIT_MODE_FAIL, SYSD_UNIT_MODE_REPLACE, SYSD_UNIT_MODE_ISOLATE,
-					SYSD_UNIT_MODE_IGN_DEPS, SYSD_UNIT_MODE_IGN_REQS};
+enum cg_sysd_unit_mode {
+	CG_SYSD_UNIT_MODE_FAIL = 0,
+	CG_SYSD_UNIT_MODE_REPLACE = 1,
+	CG_SYSD_UNIT_MODE_ISOLATE = 2,
+	CG_SYSD_UNIT_MODE_IGN_DEPS = 3,
+	CG_SYSD_UNIT_MODE_IGN_REQS = 4,
+};
 
 /**
  * Create a systemd scope in the specified slice
