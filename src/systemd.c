@@ -3,7 +3,7 @@
  * Libcgroup systemd interfaces
  *
  * Copyright (c) 2022 Oracle and/or its affiliates.
- * Author: Tom Hromatka <tom.hromatka@oracle.com>
+ * Author: Silvia Chapa <silvia.chapa@oracle.com>
  */
 
 #ifdef SYSTEMD
