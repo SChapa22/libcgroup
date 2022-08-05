@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: LGPL-2.1-only
 #include <libcgroup.h>
+#include <systemd/sd-login.h>
 
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
 #include <unistd.h>
+
+#define CGROUP_ROOT_FOLDER "/sys/fs/cgroup/unified"
 
 int main(void)
 {
@@ -13,6 +18,7 @@ int main(void)
 	static const char delegated_path2[] = "/sys/fs/cgroup/unified/testing.slice/"
 					"testing-delegated.slice/testing-delegated2.scope";
 	pid_t *sleeper = malloc(sizeof(pid_t)), *sleeper2 = malloc(sizeof(pid_t));
+	char *found_path, built_path[FILENAME_MAX];
 	int error;
 
 	*sleeper = -1;
@@ -34,10 +40,21 @@ int main(void)
 		 1, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Fail: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 1)
 		printf("Scope is delegated--Fail: %d\n", error);
 	if (*sleeper != -1) {
@@ -48,16 +65,26 @@ int main(void)
 	while (error == 0)
 		error = access(delegated_path, F_OK);
 
-
 	printf("Attempting create_scope_and_slice, _REPLACE\n");
 	error = cgroup_create_scope_and_slice("testing-delegated.scope", "testing-delegated.slice",
 		1, SYSD_UNIT_MODE_REPLACE, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Replace: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	error = access(delegated_path, F_OK);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 1)
 		printf("Scope is delegated--Replace: %d\n", error);
 	if (*sleeper != -1) {
@@ -78,10 +105,22 @@ int main(void)
 		1, SYSD_UNIT_MODE_ISOLATE, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Isolate: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
+		printf("get_cgroup loop insufficient, access has failed\n");
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 1)
 		printf("Scope is delegated--Isolate: %d\n", error);
 	if(*sleeper != -1){
@@ -91,7 +130,7 @@ int main(void)
 	error = access(delegated_path, F_OK);
 	while (error == 0)
 		error = access(delegated_path, F_OK);
-*/
+ */
 
 
 	printf("Attempting create_scope_and_slice, _IGN_DEPS\n");
@@ -99,10 +138,21 @@ int main(void)
 		1, SYSD_UNIT_MODE_IGN_DEPS, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Ignore Dependencies: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 1)
 		printf("Scope is delegated--Ignore Dependencies: %d\n", error);
 	if (*sleeper != -1) {
@@ -119,10 +169,21 @@ int main(void)
 		1, SYSD_UNIT_MODE_IGN_REQS, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Ignore Requirements: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 1)
 		printf("Scope is delegated--Ignore Requirements: %d\n", error);
 	if (*sleeper != -1) {
@@ -142,10 +203,21 @@ int main(void)
 		 0, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Fail: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 0)
 		printf("Scope is delegated--Fail: %d\n", error);
 	if (*sleeper != -1) {
@@ -162,10 +234,21 @@ int main(void)
 		0, SYSD_UNIT_MODE_REPLACE, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Replace: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 0)
 		printf("Scope is delegated--Replace: %d\n", error);
 	if (*sleeper != -1) {
@@ -186,10 +269,21 @@ int main(void)
 		0, SYSD_UNIT_MODE_ISOLATE, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Isolate: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 0)
 		printf("Scope is delegated--Isolate: %d\n", error);
 	if(*sleeper != -1){
@@ -199,7 +293,7 @@ int main(void)
 	error = access(delegated_path, F_OK);
 	while (error == 0)
 		error = access(delegated_path, F_OK);
-*/
+ */
 
 
 	printf("Attempting create_scope_and_slice, _IGN_DEPS\n");
@@ -207,10 +301,21 @@ int main(void)
 		0, SYSD_UNIT_MODE_IGN_DEPS, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Ignore Dependencies: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 0)
 		printf("Scope is delegated--Ignore Dependencies: %d\n", error);
 	if (*sleeper != -1) {
@@ -227,10 +332,21 @@ int main(void)
 		0, SYSD_UNIT_MODE_IGN_REQS, sleeper);
 	if (error != 1)
 		printf("Create Scope and Slice--Ignore Requirements: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
-	error = cgroup_is_delegated(delegated_path);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	if (error < 0)
+		printf("get_path failed: %d--%s\n", error, found_path);
+	strncat(built_path, CGROUP_ROOT_FOLDER, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
 	if (error != 0)
 		printf("Scope is delegated--Ignore Requirements: %d\n", error);
 	if (*sleeper != -1) {
@@ -254,7 +370,13 @@ int main(void)
 		1, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated.scope", "testing-delegated.slice",
@@ -280,14 +402,26 @@ int main(void)
 		1, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated2.scope", "testing-delegated.slice",
 		1, SYSD_UNIT_MODE_FAIL, sleeper2);
 	if (error != 1)
 		printf("Create scope_and_slice failed--2nd Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper2, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper2, &found_path);
 	error = access(delegated_path2, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path2, F_OK);
 	if (*sleeper != -1) {
@@ -312,7 +446,13 @@ int main(void)
 		1, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated.scope", "delegated-testing.slice",
@@ -340,7 +480,13 @@ int main(void)
 		0, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated.scope", "testing-delegated.slice",
@@ -366,14 +512,26 @@ int main(void)
 		0, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated2.scope", "testing-delegated.slice",
 		0, SYSD_UNIT_MODE_FAIL, sleeper2);
 	if (error != 1)
 		printf("Create scope_and_slice failed--2nd Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper2, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper2, &found_path);
 	error = access(delegated_path2, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path2, F_OK);
 	if (*sleeper != -1) {
@@ -398,7 +556,13 @@ int main(void)
 		0, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 1)
 		printf("Create scope_and_slice failed--1st Double-call: %d\n", error);
+	error = sd_pid_get_cgroup(*sleeper, &found_path);
+	while (error == ESRCH)
+		printf("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*sleeper, &found_path);
 	error = access(delegated_path, F_OK);
+	if (error < 0)
+		printf("get_cgroup loop insufficient: %d", error);
 	while (error < 0)
 		error = access(delegated_path, F_OK);
 	error = cgroup_create_scope_and_slice("testing-delegated.scope", "delegated-testing.slice",
@@ -549,7 +713,6 @@ int main(void)
 		0, SYSD_UNIT_MODE_FAIL, sleeper);
 	if (error != 22)
 		printf("Create scope_and_slice failed--Ommitting scope ending: %d\n", error);
-
 
 	free(sleeper);
 
