@@ -149,4 +149,5 @@ CGROUP_3.0 {
 	cgroup_create_scope_and_slice;
 	cgroup_create_scope_user_slice;
 	cgroup_is_delegated;
+	cgroup_is_delegated_pid;
 } CGROUP_2.0;

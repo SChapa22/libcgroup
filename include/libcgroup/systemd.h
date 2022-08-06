@@ -48,6 +48,13 @@ int cgroup_create_scope_user_slice(char *scope_name, int delegated,
  */
 int cgroup_is_delegated(char *scope_name);
 
+/**
+ * Check if the systemd scope a process is in has been delegated, based on process PID
+ *
+ * @param target Pointer to the process PID
+ */
+int cgroup_is_delegated_pid(pid_t *target);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

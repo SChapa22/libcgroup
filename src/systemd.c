@@ -23,9 +23,10 @@
 #include <sys/stat.h>
 
 #include <systemd/sd-bus.h>
+#include <systemd/sd-login.h>
 
 #define CG_SYSTEMD_USER_SLICE_NAME "user.slice"
-#define CG_SCOPE_TREE_ROOT "/sys/fs/cgroup/unified/"
+#define CG_SCOPE_TREE_ROOT "/sys/fs/cgroup/unified"
 
 char SYSD_UNIT_MODE_NAMES[5][20] = {"fail", "replace", "isolate",
 	"ignore-dependencies", "ignore-requirements"};
@@ -191,6 +192,27 @@ int cgroup_is_delegated(char *scope_name)
 	}
 
 	return ret;
+}
+
+int cgroup_is_delegated_pid(pid_t *target)
+{
+	char *found_path, built_path[FILENAME_MAX + 1];
+	int error = 0;
+
+	memset(built_path, 0, FILENAME_MAX + 1);
+	error = sd_pid_get_cgroup(*target, &found_path);
+	while (error < 0) {
+		if (error != ESRCH)
+			cgroup_err("get_cgroup: %d\n", error);
+		error = sd_pid_get_cgroup(*target, &found_path);
+	}
+	strncat(built_path, CG_SCOPE_TREE_ROOT, FILENAME_MAX);
+	strncat(built_path, found_path, FILENAME_MAX);
+	error = cgroup_is_delegated(built_path);
+	free(found_path);
+	memset(built_path, 0, FILENAME_MAX + 1);
+
+	return error;
 }
 
 #endif /* SYSTEMD */
