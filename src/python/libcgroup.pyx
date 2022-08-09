@@ -14,6 +14,8 @@
 __author__ =  'Tom Hromatka <tom.hromatka@oracle.com>'
 __date__ = "25 October 2021"
 
+from posix.types cimport pid_t
+
 cimport cgroup
 
 cdef class Version:
@@ -312,5 +314,28 @@ cdef class Cgroup:
 
     def __dealloc__(self):
         cgroup.cgroup_free(&self._cgp);
+
+
+# Equivalent to the defined variables in systemd.c
+CG_SYSTEMD_USER_SLICE_NAME = "user.slice"
+CG_SCOPE_TREE_ROOT = "/sys/fs/cgroup/"
+CG_SCOPE_TREE_ROOT_UNI = "/sys/fs/cgroup/unified/"
+CG_SCOPE_TREE_ROOT_SYSD = "/sys/fs/cgroup/systemd/"
+
+cdef extern from "systemd.h":
+
+        cpdef enum cgroup_sysd_unit_mode:
+                SYSD_UNIT_MODE_FAIL = 0
+                SYSD_UNIT_MODE_REPLACE = 1
+                SYSD_UNIT_MODE_ISOLATE = 2
+                SYSD_UNIT_MODE_IGN_DEPS = 3
+                SYSD_UNIT_MODE_IGN_REQS = 4
+
+        cdef int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delegated, cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid)
+        cdef cgroup_create_scope_user_slice(char *scope_name, int delegated, cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid)
+        int cgroup_is_delegated(char *path)
+        cdef int cgroup_is_delegated_pid(pid_t *target)
+
+
 
 # vim: set et ts=4 sw=4:
