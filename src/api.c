@@ -130,6 +130,7 @@ const char * const cgroup_strerror_codes[] = {
 	"Failed to remove a non-empty group",
 	"Failed to convert from cgroup v1 to/from cgroup v2",
 	"Cgroup already exists",
+	"Unknown hierarchy mounted",
 };
 
 static const char * const cgroup_ignored_tasks_files[] = { "tasks", NULL };

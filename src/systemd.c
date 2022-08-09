@@ -18,15 +18,20 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <linux/magic.h>
+
 #include <sys/xattr.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 
 #include <systemd/sd-bus.h>
 #include <systemd/sd-login.h>
 
 #define CG_SYSTEMD_USER_SLICE_NAME "user.slice"
-#define CG_SCOPE_TREE_ROOT "/sys/fs/cgroup/unified"
+#define CG_SCOPE_TREE_ROOT "/sys/fs/cgroup/"
+#define CG_SCOPE_TREE_ROOT_UNI "/sys/fs/cgroup/unified/"
+#define CG_SCOPE_TREE_ROOT_SYSD "/sys/fs/cgroup/systemd/"
 
 char SYSD_UNIT_MODE_NAMES[5][20] = {"fail", "replace", "isolate",
 	"ignore-dependencies", "ignore-requirements"};
@@ -197,6 +202,7 @@ int cgroup_is_delegated(char *scope_name)
 int cgroup_is_delegated_pid(pid_t *target)
 {
 	char *found_path, built_path[FILENAME_MAX + 1];
+	struct statfs fs;
 	int error = 0;
 
 	memset(built_path, 0, FILENAME_MAX + 1);
@@ -206,7 +212,36 @@ int cgroup_is_delegated_pid(pid_t *target)
 			cgroup_err("get_cgroup: %d\n", error);
 		error = sd_pid_get_cgroup(*target, &found_path);
 	}
-	strncat(built_path, CG_SCOPE_TREE_ROOT, FILENAME_MAX);
+	error = statfs(CG_SCOPE_TREE_ROOT, &fs);
+	if (error < 0){
+		cgroup_err("statfs on %s failed: %d-%s\n", CG_SCOPE_TREE_ROOT, errno, strerror(errno));
+	}
+	if ((fs.f_type == (typeof(fs.f_type)) CGROUP2_SUPER_MAGIC)) {
+		strncat(built_path, CG_SCOPE_TREE_ROOT, FILENAME_MAX);
+	} else if ((fs.f_type == (typeof(fs.f_type)) TMPFS_MAGIC)) {
+		error = statfs(CG_SCOPE_TREE_ROOT_UNI, &fs);
+		if (error < 0) {
+			cgroup_err("statfs on %s failed: %d-%s\n", CG_SCOPE_TREE_ROOT_UNI, errno, strerror(errno));
+		}
+		if ((fs.f_type == (typeof(fs.f_type)) CGROUP2_SUPER_MAGIC)) {
+			strncat(built_path, CG_SCOPE_TREE_ROOT_UNI, FILENAME_MAX);
+		} else {
+			error = statfs(CG_SCOPE_TREE_ROOT_SYSD, &fs);
+			if (error < 0) {
+				cgroup_err("statfs on %s failed: %d-%s\n", CG_SCOPE_TREE_ROOT_UNI, errno, strerror(errno));
+			}
+			if (((fs.f_type == (typeof(fs.f_type)) CGROUP2_SUPER_MAGIC)) || ((fs.f_type == (typeof(fs.f_type)) CGROUP_SUPER_MAGIC))) {
+				strncat(built_path, CG_SCOPE_TREE_ROOT_SYSD, FILENAME_MAX);
+			}
+			else {
+				return ECGROUPUNKMOUNT;
+			}
+		}
+	} else if ((fs.f_type == (typeof(fs.f_type)) SYSFS_MAGIC)) {
+		return ECGROUPNOTMOUNTED;
+	} else {
+		return ECGROUPUNKMOUNT;
+	}
 	strncat(built_path, found_path, FILENAME_MAX);
 	error = cgroup_is_delegated(built_path);
 	free(found_path);

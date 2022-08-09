@@ -13,9 +13,9 @@
 
 int main(void)
 {
-	static const char delegated_path[] = "/sys/fs/cgroup/unified/testing.slice/"
+	static const char delegated_path[] = "/sys/fs/cgroup/testing.slice/"
 					"testing-delegated.slice/testing-delegated.scope";
-	static const char delegated_path2[] = "/sys/fs/cgroup/unified/testing.slice/"
+	static const char delegated_path2[] = "/sys/fs/cgroup/testing.slice/"
 					"testing-delegated.slice/testing-delegated2.scope";
 	pid_t *sleeper = malloc(sizeof(pid_t)), *sleeper2 = malloc(sizeof(pid_t));
 	char *found_path;

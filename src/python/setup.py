@@ -28,9 +28,6 @@ setup(
                       # unable to handle libtool libraries directly
                       extra_objects=['../.libs/libcgroup.a']
                      ),
-            Extension(
-                     'cgsystemd', ['systemd.pyx'],
-                     ),
              ])
 )
 

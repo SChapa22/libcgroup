@@ -78,7 +78,9 @@ enum {
 	/** Failed to convert from cgroup v1 to/from cgroup v2 */
 	ECGNOVERSIONCONVERT,		/* 50031 */
 	/** Attempting to create a slice or scope that already exists -- SystemD Support*/
-	ECGSYSDSLICESCOPEEXISTS		/* 50032 */
+	ECGSYSDSLICESCOPEEXISTS,	/* 50032 */
+	/** Unknown path has been used as root of cgroup hierarchy */
+	ECGROUPUNKMOUNT,		/* 50033 */
 };
 
 /**

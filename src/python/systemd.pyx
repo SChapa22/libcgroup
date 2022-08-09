@@ -14,8 +14,11 @@
 __author__ =  'Silvia Chapa <silvia.chapa@oracle.com>'
 __date__ = "8 August 2022"
 
-cdef extern from *:
-	ctypedef pid_t
+
+from posix.types cimport pid_t
+
+#cdef extern from "unistd.h":
+#	ctypedef pid_t
 
 # Equivalent to the defined variables in systemd.c
 CG_SYSTEMD_USER_SLICE_NAME = "user.slice"
