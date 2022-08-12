@@ -8,6 +8,8 @@
 
 # cython: language_level = 3str
 
+from posix.types cimport pid_t
+
 cdef extern from "libcgroup.h":
     cdef struct cgroup:
         pass
@@ -53,5 +55,30 @@ cdef extern from "libcgroup.h":
 
     int cgroup_list_mount_points(const cg_version_t cgrp_version,
                                  char ***mount_paths)
+
+# Equivalent to the defined variables in systemd.c
+cdef char *CG_SYSTEMD_USER_SLICE_NAME = "user.slice"
+cdef char *CG_SCOPE_TREE_ROOT = "/sys/fs/cgroup/"
+cdef char *CG_SCOPE_TREE_ROOT_UNI = "/sys/fs/cgroup/unified/"
+cdef char *CG_SCOPE_TREE_ROOT_SYSD = "/sys/fs/cgroup/systemd/"
+
+cdef extern from "systemd.h":
+
+        cdef enum cgroup_sysd_unit_mode:
+                SYSD_UNIT_MODE_FAIL = 0
+                SYSD_UNIT_MODE_REPLACE = 1
+                SYSD_UNIT_MODE_ISOLATE = 2
+                SYSD_UNIT_MODE_IGN_DEPS = 3
+                SYSD_UNIT_MODE_IGN_REQS = 4
+
+        cdef int cgroup_create_scope_and_slice(char *scope_name,
+               char *slice_name, int delegated, cgroup_sysd_unit_mode mode,
+               pid_t * const sleeper_pid)
+        cdef cgroup_create_scope_user_slice(char *scope_name, int delegated,
+               cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid)
+        int cgroup_is_delegated(char *path)
+        cdef int cgroup_is_delegated_pid(pid_t *target)
+
+
 
 # vim: set et ts=4 sw=4:

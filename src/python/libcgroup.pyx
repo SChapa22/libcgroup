@@ -14,8 +14,6 @@
 __author__ =  'Tom Hromatka <tom.hromatka@oracle.com>'
 __date__ = "25 October 2021"
 
-from posix.types cimport pid_t
-
 cimport cgroup
 
 cdef class Version:
@@ -23,6 +21,13 @@ cdef class Version:
     CGROUP_V1 = cgroup.CGROUP_V1
     CGROUP_V2 = cgroup.CGROUP_V2
     CGROUP_DISK = cgroup.CGROUP_DISK
+
+cdef class SYSD_MODE:
+    SYSD_UNIT_MODE_FAIL = cgroup.SYSD_UNIT_MODE_FAIL
+    SYSD_UNIT_MODE_REPLACE = cgroup.SYSD_UNIT_MODE_REPLACE
+    SYSD_UNIT_MODE_ISOLATE = cgroup.SYSD_UNIT_MODE_ISOLATE
+    SYSD_UNIT_MODE_IGN_DEPS = cgroup.SYSD_UNIT_MODE_IGN_DEPS
+    SYSD_UNIT_MODE_IGN_REQS = cgroup.SYSD_UNIT_MODE_IGN_REQS
 
 def c_str(string):
     return bytes(string, "ascii")
@@ -315,27 +320,59 @@ cdef class Cgroup:
     def __dealloc__(self):
         cgroup.cgroup_free(&self._cgp);
 
+    @staticmethod
+    def create_scope(self, scope_name, slice_name = cgroup.CG_SYSTEMD_USER_SLICE_NAME,
+                        delegated = 1, mode = cgroup.SYSD_UNIT_MODE_FAIL):
+        """Create a scope in the specified slice, which may or may not be delegated
 
-# Equivalent to the defined variables in systemd.c
-CG_SYSTEMD_USER_SLICE_NAME = "user.slice"
-CG_SCOPE_TREE_ROOT = "/sys/fs/cgroup/"
-CG_SCOPE_TREE_ROOT_UNI = "/sys/fs/cgroup/unified/"
-CG_SCOPE_TREE_ROOT_SYSD = "/sys/fs/cgroup/systemd/"
+        Arguments:
+        scope_name - name of the scope
+        slice_name - name of the slice
+        delegated - whether or not the scope should be delegated: 1 if delegated and 0 if not
+        mode - mode with which to create the scope
 
-cdef extern from "systemd.h":
+        Return:
+        Returns the PID of the infinite sleep process in the created scope
 
-        cpdef enum cgroup_sysd_unit_mode:
-                SYSD_UNIT_MODE_FAIL = 0
-                SYSD_UNIT_MODE_REPLACE = 1
-                SYSD_UNIT_MODE_ISOLATE = 2
-                SYSD_UNIT_MODE_IGN_DEPS = 3
-                SYSD_UNIT_MODE_IGN_REQS = 4
+        Description:
+        Create a scope in the specified slice, which may or may not be delegated
+        """
+        cdef cgroup.pid_t *sleeper = NULL
 
-        cdef int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delegated, cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid)
-        cdef cgroup_create_scope_user_slice(char *scope_name, int delegated, cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid)
-        int cgroup_is_delegated(char *path)
-        cdef int cgroup_is_delegated_pid(pid_t *target)
+        ret = cgroup.cgroup_create_scope_and_slice(scope_name, slice_name, delegated, mode, sleeper)
+        if (ret < 0) or (sleeper == NULL):
+            raise RuntimeError("Failed to add scope {} to slice {}: error number {}".format(
+                               scope_name, slice_name, ret))
+        else:
+            return sleeper[0]
 
+    @staticmethod
+    def is_delegated(int[:] pid):
+        """Determine if the scope containing the given PID is delegated
+
+        Arguments:
+        pid - PID of the scope
+
+        Return:
+        True if the scope is delegated, False if not
+
+        Description:
+        Determine if the scope containing the given PID is delegated
+        """
+        cdef cgroup.pid_t *target = NULL
+
+        if pid == None:
+            raise RuntimeError("NULL PID pointer given")
+
+        target = <cgroup.pid_t *>&pid[0]
+
+        ret = cgroup.cgroup_is_delegated_pid(target)
+        if ret == 0:
+            return False
+        elif ret == 1:
+            return True
+        else:
+            raise RuntimeError("Cannot determine if scope is delegated: error number {}".format(ret))
 
 
 # vim: set et ts=4 sw=4:
