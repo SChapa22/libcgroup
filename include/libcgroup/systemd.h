@@ -26,6 +26,8 @@ enum cgroup_sysd_unit_mode {
  * @param delegated Instruct systemd that this cgroup is delegated and should not be managed
  * 	  by systemd
  * @param mode Unit mode for systemd, must be from SYSD_UNIT_MODE Enum
+ * @param sleeper_pid Pointer wherein to return the PID of the infinite sleep child process
+ *    that is placed into the newly-created scope
  */
 int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delegated,
 	enum cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid);
@@ -37,6 +39,8 @@ int cgroup_create_scope_and_slice(char *scope_name, char *slice_name, int delega
  * @param delegated Instruct systemd that this cgroup is delegated and should not be managed
  *	  by systemd
  * @param mode Unit mode for systemd, must be from SYSD_UNIT_MODE Enum
+ * @param sleeper_pid Pointer wherein to return the PID of the infinite sleep child process
+ *    that is placed into the newly-created scope
  */
 int cgroup_create_scope_user_slice(char *scope_name, int delegated,
 	enum cgroup_sysd_unit_mode mode, pid_t * const sleeper_pid);
