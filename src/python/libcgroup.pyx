@@ -22,6 +22,13 @@ cdef class Version:
     CGROUP_V2 = cgroup.CGROUP_V2
     CGROUP_DISK = cgroup.CGROUP_DISK
 
+cdef class SYSD_MODE:
+    SYSD_UNIT_MODE_FAIL = cgroup.SYSD_UNIT_MODE_FAIL
+    SYSD_UNIT_MODE_REPLACE = cgroup.SYSD_UNIT_MODE_REPLACE
+    SYSD_UNIT_MODE_ISOLATE = cgroup.SYSD_UNIT_MODE_ISOLATE
+    SYSD_UNIT_MODE_IGN_DEPS = cgroup.SYSD_UNIT_MODE_IGN_DEPS
+    SYSD_UNIT_MODE_IGN_REQS = cgroup.SYSD_UNIT_MODE_IGN_REQS
+
 def c_str(string):
     return bytes(string, "ascii")
 
@@ -312,5 +319,60 @@ cdef class Cgroup:
 
     def __dealloc__(self):
         cgroup.cgroup_free(&self._cgp);
+
+    @staticmethod
+    def create_scope(self, scope_name, slice_name = cgroup.CG_SYSTEMD_USER_SLICE_NAME,
+                        delegated = 1, mode = cgroup.SYSD_UNIT_MODE_FAIL):
+        """Create a scope in the specified slice, which may or may not be delegated
+
+        Arguments:
+        scope_name - name of the scope
+        slice_name - name of the slice
+        delegated - whether or not the scope should be delegated: 1 if delegated and 0 if not
+        mode - mode with which to create the scope
+
+        Return:
+        Returns the PID of the infinite sleep process in the created scope
+
+        Description:
+        Create a scope in the specified slice, which may or may not be delegated
+        """
+        cdef cgroup.pid_t *sleeper = NULL
+
+        ret = cgroup.cgroup_create_scope_and_slice(scope_name, slice_name, delegated, mode, sleeper)
+        if (ret < 0) or (sleeper == NULL):
+            raise RuntimeError("Failed to add scope {} to slice {}: error number {}".format(
+                               scope_name, slice_name, ret))
+        else:
+            return sleeper[0]
+
+    @staticmethod
+    def is_delegated(int[:] pid):
+        """Determine if the scope containing the given PID is delegated
+
+        Arguments:
+        pid - PID of the scope
+
+        Return:
+        True if the scope is delegated, False if not
+
+        Description:
+        Determine if the scope containing the given PID is delegated
+        """
+        cdef cgroup.pid_t *target = NULL
+
+        if pid == None:
+            raise RuntimeError("NULL PID pointer given")
+
+        target = <cgroup.pid_t *>&pid[0]
+
+        ret = cgroup.cgroup_is_delegated_pid(target)
+        if ret == 0:
+            return False
+        elif ret == 1:
+            return True
+        else:
+            raise RuntimeError("Cannot determine if scope is delegated: error number {}".format(ret))
+
 
 # vim: set et ts=4 sw=4:
